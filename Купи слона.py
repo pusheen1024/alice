@@ -1,5 +1,6 @@
-from flask import Flask, request, jsonify
 import logging
+from fnmatch import fnmatch
+from flask import Flask, request, jsonify
 
 
 app = Flask(__name__)
@@ -28,7 +29,7 @@ def handle_dialog(req, res):
         res['response']['text'] = 'Привет! Купи слона!'
         res['response']['buttons'] = get_suggests(user_id)
     else:
-        if req['request']['original_utterance'].lower() in ['ладно', 'куплю', 'покупаю', 'хорошо']:
+        if is_consent(req['request']['original_utterance']):
             res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
             res['response']['end_session'] = True
         else:
@@ -42,10 +43,17 @@ def get_suggests(user_id):
     session['suggests'] = session['suggests'][1:]
     sessionStorage[user_id] = session
     if len(suggests) < 2:
-        suggests.append({"title": "Хорошо", 
+        suggests.append({"title": "Хорошо",
                          "url": "https://market.yandex.ru/search?text=слон",
                          "hide": True})
     return suggests
+
+
+def is_consent(phrase):
+    consent_words = ['да', 'окей', 'хорошо', 'конечно', 'не против',
+                     'согласен', 'согласна', 'куплю', 'покупаю']
+    return any(word in phrase.lower() and not
+               fnmatch(phrase.lower(), f'*не*{word}') for word in consent_words)
 
 
 if __name__ == '__main__':
